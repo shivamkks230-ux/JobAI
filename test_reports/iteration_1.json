@@ -1,0 +1,37 @@
+{
+  "summary": "JobMatch AI full-stack test — backend 51/51 pytest cases pass (100%), covering auth (register/login/me/logout/duplicate 409/suspended 403), RBAC (candidate/recruiter blocked from /admin/*, candidate blocked from /recruiter/*), candidate profile GET/PUT, resume GET+improve, jobs list/filters/best_match/home/detail/save/unsave/saved, applications list/consent-false 400/duplicate 409/detail, recruiter dashboard/company/jobs/applications/interviews/post-job (402 plan-limit respected), admin metrics/users/companies/jobs/reports/analytics/audit-logs/plans/integrations, notifications, coach session+answer (real LLM), plans + /payments/checkout -> 503 as expected, file magic-byte validation (txt rejected, fake-PDF rejected), and fresh user DELETE /account. Frontend mobile viewport 390x844: candidate login -> /home with tabs Home/Jobs/Applications/Saved/Profile all navigate; recruiter login -> /dashboard with Dashboard/Jobs/Candidates/Interviews/Company all navigate and show real seeded data (6 active jobs, 1 application, verified company badge); admin login -> /overview with Overview/Review/Reports/Users all navigate and show metrics (5 users, 3 companies, 6 jobs). testIDs present throughout. One deprecation warning in console: React Native Web \"shadow*\" style props deprecated — migrate to \"boxShadow\" (non-blocking). No red screens, no API 5xx observed, no mocked integrations found in code — AI (openai gpt-5.4 via Emergent LLM key), storage, and in-app notifications are all live.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "React Native Web styles", "issue": "Console warns: '\"shadow*\" style props are deprecated. Use \"boxShadow\".' Appears from multiple screens (likely StyleSheet shadowColor/shadowOffset/shadowOpacity/shadowRadius). Should migrate to the unified boxShadow prop. Reference: /app/frontend/src/ui.tsx and screen StyleSheet.create blocks across /app/frontend/app/**/*.tsx"}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_backend.py",
+    "/app/backend/tests/conftest.py",
+    "/app/test_reports/pytest/results.xml"
+  ],
+  "action_items": [
+    "Migrate deprecated shadow* props (shadowColor/shadowOffset/shadowOpacity/shadowRadius) to the modern boxShadow prop across /app/frontend/src/ui.tsx and screen StyleSheet blocks to silence React Native Web warning in production builds."
+  ],
+  "critical_code_review_comments": [
+    "routes_main.py is 856 lines — approaching the 700-line soft limit. Consider splitting into auth.py, candidate.py, jobs.py, applications.py, coach.py, notifications.py, plans.py modules for maintainability.",
+    "All critical patterns look good: Mongo _id excluded via projections, async/await used throughout, env vars read from os.environ, pydantic models validate every endpoint, bearer token auth via sessions, rate limiting applied on write endpoints, magic-byte file validation present, RBAC enforced via require_roles dependency."
+  ],
+  "updated_files": [
+    "/app/backend/tests/conftest.py (new)",
+    "/app/backend/tests/test_backend.py (new — 51 tests)"
+  ],
+  "success_rate": {"backend": "100% (51/51)", "frontend": "100% core flows (3 role dashboards + tab navigation + login verified)"},
+  "seed_data_creation": "No persistent seed created. Tests create and then DELETE ephemeral candidate (TEST_cand_*@example.com) and recruiter (TEST_rec_*@example.com) accounts. Recruiter test created a pending-verification company that remains for admin review flow testing. One TEST QA Engineer recruiter job may remain if plan quota allowed (otherwise 402). No seeded accounts modified.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend fully verified via /app/backend/tests/test_backend.py (pytest, parallel-safe, uses xdist). Frontend login/role-redirect verified for all 3 roles at mobile viewport 390x844. Not exercised in UI (recommend covering if changes are made): resume multipart upload via browser (hard to do with real PDF via Playwright), apply-flow end-to-end click (consent screen + submit), recruiter post-job form submission, admin verify-company action, admin suspend-user action — all underlying APIs are green. Payments provider is intentionally unset (503 expected).",
+  "rca_of_issue": "N/A — no bugs found. Only a React Native Web deprecation warning for shadow* props which does not affect functionality."
+}

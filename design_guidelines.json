@@ -1,0 +1,186 @@
+{
+  "app_name": "JobMatch AI",
+  "personality": "1 iOS-Native Clean",
+  "personality_one_liner": "A modern, trustworthy, and premium employment platform built on clean iOS-native principles, featuring a strong indigo identity and crisp whitespace for serious professionals.",
+  "color": {
+    "surface": "#FFFFFF",
+    "onSurface": "#0F172A",
+    "surfaceSecondary": "#F8FAFC",
+    "onSurfaceSecondary": "#334155",
+    "surfaceTertiary": "#F1F5F9",
+    "onSurfaceTertiary": "#475569",
+    "surfaceInverse": "#0F172A",
+    "onSurfaceInverse": "#FFFFFF",
+    "brand": "#4F46E5",
+    "onBrand": "#FFFFFF",
+    "brandPrimary": "#4338CA",
+    "onBrandPrimary": "#FFFFFF",
+    "brandSecondary": "#E0E7FF",
+    "onBrandSecondary": "#3730A3",
+    "brandTertiary": "#EEF2FF",
+    "onBrandTertiary": "#4338CA",
+    "success": "#10B981",
+    "onSuccess": "#FFFFFF",
+    "warning": "#F59E0B",
+    "onWarning": "#FFFFFF",
+    "error": "#EF4444",
+    "onError": "#FFFFFF",
+    "info": "#3B82F6",
+    "onInfo": "#FFFFFF",
+    "border": "#E2E8F0",
+    "borderStrong": "#CBD5E1",
+    "divider": "#F1F5F9",
+    "muted": "#64748B"
+  },
+  "typography": {
+    "displayFontFamily": "Plus Jakarta Sans",
+    "textFontFamily": "Inter",
+    "scale": {
+      "sm": 12,
+      "base": 14,
+      "lg": 16,
+      "xl": 20,
+      "2xl": 24
+    }
+  },
+  "spacing": {
+    "rule": "Generous vertical breathing room. Cards are never flush to the screen edge; always use 'lg' or 'xl' margin. Ensure sticky primary CTAs have safe-area clearance at the bottom with proper scroll padding.",
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "2xl": 32,
+    "3xl": 48
+  },
+  "radius_tokens": {
+    "sm": 6,
+    "md": 12,
+    "lg": 20,
+    "pill": 999
+  },
+  "shadow_tier": "1",
+  "navigation": "bottom_tabs",
+  "icon_set": "Phosphor",
+  "glassmorphism": {
+    "enabled": "true",
+    "do's": [
+      "Use for sticky 'Apply Now' or 'Move to Next Stage' bottom action bars over scrolling content.",
+      "Apply to bottom tab bar.",
+      "Use for sticky filter rows or segmented controls when candidate lists scroll behind."
+    ],
+    "dont's": [
+      "Never blur job cards, form inputs, or resume text regions.",
+      "Avoid stacking more than 2 glass surfaces on one screen."
+    ]
+  },
+  "platform_libraries": {
+    "glass": {
+      "ios": "expo-glass-effect",
+      "android": "expo-blur",
+      "low_end_android_fallback": "solid surfaceSecondary"
+    },
+    "image": "expo-image",
+    "blur": "expo-blur",
+    "bottom_sheet": "@gorhom/bottom-sheet",
+    "animation": "react-native-reanimated",
+    "gesture": "react-native-gesture-handler"
+  },
+  "screens": [
+    {
+      "name": "Candidate Home / Feed",
+      "purpose": "A personalized job feed highlighting AI match percentages, recommended roles, and quick status of recent applications.",
+      "states": {
+        "loading": "Skeleton cards mimicking the layout of job listing cards.",
+        "empty": "Illustration of an empty inbox/search with 'No jobs matched your criteria today. Try adjusting your preferences.' and a CTA to 'Update Profile'.",
+        "error": "Readable error message 'Unable to load your matches' with a Retry button."
+      },
+      "layout": "A hero section at the top featuring an abstract indigo gradient card showing profile completion/resume score. Below, a vertically scrolling list of Job Cards. Job cards use 'surfaceSecondary' with 'md' radius. Each card must prominently display the job title, company name, location, and a distinct visual cue for 'AI Match %' (e.g., a 'brandTertiary' chip). Keep tap targets large."
+    },
+    {
+      "name": "Job Details",
+      "purpose": "Provides comprehensive job information, AI fit reasoning, and a sticky 'Apply Now' CTA.",
+      "states": {
+        "loading": "Centered spinner.",
+        "empty": "N/A - Data should be present if navigated here.",
+        "error": "Error loading job details with a Retry button."
+      },
+      "layout": "Scrollable view with job title, company, salary range, and tags at the top. Followed by a specific 'AI Fit Analysis' section explaining match reasons and gaps using progressive disclosure (expandable). The bottom of the screen MUST have a sticky 'Apply Now' CTA inside a glass container, allowing content to scroll behind it."
+    },
+    {
+      "name": "Application Tracker",
+      "purpose": "A timeline-based view showing the status of applied jobs (Applied -> Screening -> Interview -> Selected/Rejected).",
+      "states": {
+        "loading": "Skeleton timeline nodes.",
+        "empty": "Illustration indicating 'No applications yet. Start applying to see your progress!' with a CTA 'Find Jobs'.",
+        "error": "Error loading applications with a Retry button."
+      },
+      "layout": "A vertical Kanban-style timeline. Use 'brandPrimary' for completed steps, 'surfaceSecondary' for upcoming steps. Date-stamped activity history per application. Centralized timeline keeping historical data accessible without navigating deep."
+    },
+    {
+      "name": "AI Interview Coach",
+      "purpose": "Provides mock interview questions and feedback to improve candidate readiness.",
+      "states": {
+        "loading": "Centered spinner.",
+        "empty": "Welcome screen introducing the feature with a 'Start Mock Interview' CTA.",
+        "error": "Error connecting to AI Coach with Retry button."
+      },
+      "layout": "A chat-like or card-swiping interface for questions. Top half shows a professional office backdrop (dimmed with gradient scrim) and the current question. Bottom half offers actionable feedback chips and a 'Next Question' button."
+    },
+    {
+      "name": "Recruiter Dashboard",
+      "purpose": "A high-level overview of active jobs, new applicants, and upcoming interviews for recruiters.",
+      "states": {
+        "loading": "Skeleton layout for metric cards and recent activity list.",
+        "empty": "Illustration indicating 'No active jobs. Post a job to start receiving candidates.' with a 'Post Job' CTA.",
+        "error": "Error loading dashboard metrics with a Retry button."
+      },
+      "layout": "Top section features 2-column grid cards for quick metrics (Total Applicants, Shortlisted, Interviews). Below, a list of 'Urgent Tasks' (e.g., 'Review 5 new applicants for Product Manager'). Uses a clean, card-based layout to reduce cognitive load on the go."
+    },
+    {
+      "name": "Candidate Pipeline (Recruiter View)",
+      "purpose": "Allows recruiters to review and move candidates through different hiring stages.",
+      "states": {
+        "loading": "Skeleton list rows.",
+        "empty": "Illustration indicating 'No candidates in this stage yet.'",
+        "error": "Error loading candidates with a Retry button."
+      },
+      "layout": "Horizontal segmented control (Applied | Screening | Interview | Hired) at the top, pinned (sticky glass). Below is a list of candidate cards showing name, AI match score, and current status. Swiping a card or tapping primary action buttons ('Thumbs Up/Down' or 'Move Stage') updates their status immediately with a confirmation toast."
+    }
+  ],
+  "images": {
+    "hero_gradient_light": {
+      "url": "https://images.unsplash.com/photo-1557683316-973673baf926?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzV8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMGluZGlnbyUyMGdyYWRpZW50JTIwYmFja2dyb3VuZHxlbnwwfHx8fDE3OTEyNzMyOTV8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Abstract light blue to dark indigo gradient"
+    },
+    "hero_gradient_dark": {
+      "url": "https://images.unsplash.com/photo-1614851099511-773084f6911d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzV8MHwxfHNlYXJjaHwyfHxhYnN0cmFjdCUyMGluZGlnbyUyMGdyYWRpZW50JTIwYmFja2dyb3VuZHxlbnwwfHx8fDE3OTEyNzMyOTV8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Dark indigo and deep purple abstract illustration"
+    },
+    "interview_coach_bg": {
+      "url": "https://images.unsplash.com/photo-1780733057947-7b57f5108f68?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBqb2IlMjBpbnRlcnZpZXclMjBvZmZpY2UlMjBtb2Rlcm58ZW58MHx8fHwxNzkxMjczMjk1fDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Professional modern office setting for interview coach backdrop"
+    },
+    "resume_analyzer_bg": {
+      "url": "https://images.unsplash.com/photo-1698047681432-006d2449c631?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzN8MHwxfHNlYXJjaHwxfHxjbGVhbiUyMG1vZGVybiUyMHJlc3VtZSUyMGRvY3VtZW50JTIwZGVza3xlbnwwfHx8fDE3OTEyNzMyOTV8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Clean modern resume document on a desk"
+    }
+  },
+  "haptics": {
+    "events": {
+      "primary_button_press": "impactMedium",
+      "tab_change": "selection",
+      "move_candidate_stage": "impactHeavy",
+      "match_score_reveal": "notificationSuccess",
+      "save_job_toggle": "impactLight"
+    }
+  },
+  "instructions_to_main_agent": [
+    "Strictly follow the user's color override: Use the strong indigo (#4F46E5 / #4338CA) as the primary brand color, against a clean white background, creating a trustworthy, premium Indian employment platform.",
+    "Implement 'iOS-Native Clean' personality: Avoid web-style dashboards. Use generous spacing (lg/xl), rounded cards (md/lg), and clear visual hierarchy. Do not copy LinkedIn/Naukri layouts.",
+    "Ensure 'Job Details' and other screens with a primary action have a sticky CTA at the bottom using a glass effect so content seamlessly scrolls behind it.",
+    "For the Application Tracker and Recruiter Pipeline, use vertical timelines and segmented controls respectively to manage data without deep nesting.",
+    "All images used as backgrounds (e.g., hero cards, interview coach backdrops) MUST have a top-to-bottom vertical gradient scrim (Layer 1) to ensure WCAG AAA readability for the overlaid text (Layer 2).",
+    "Maintain visual consistency across Candidate, Recruiter, and Admin portals by relying on the identical typography (Plus Jakarta Sans/Inter) and color scale."
+  ]
+}
