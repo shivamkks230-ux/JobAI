@@ -46,3 +46,8 @@ MONGO_URL, DB_NAME, EMERGENT_LLM_KEY, SEED_TEST_DATA (set false/remove in produc
 ## Backlog
 - P1: native date/time picker for interviews; email OTP; payment adapter; push notifications
 - P2: candidate premium gating, recruiter talent search beyond applicants, hiring analytics for Pro, boxShadow web style migration
+
+## 2026-06 Auth & connectivity hardening
+- Root cause analysis: backend publicly reachable over HTTPS; client mapped every fetch exception to "No internet" (hid misconfigured/local/HTTP backend URL in locally-built APK, timeouts, cleartext block). Android Google flow could drop late deep links.
+- Fixes: error classification (network/timeout/config/HTTP), 30s/90s/120s timeouts, backend URL validation (HTTPS, no localhost/10.0.2.2), /api/health with DB ping, login "test connection" diagnostic, AUTH_DEBUG logs (no secrets), 422→400 readable errors, password policy (8+ chars, letter+number), session restore only clears on 401/403, permanent deep-link listener for Google, INTERNET permission explicit.
+- Tests: iteration_2 backend 63/63, frontend auth flows pass.

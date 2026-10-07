@@ -12,7 +12,7 @@ export default function Register() {
   const insets = useSafeAreaInsets();
   const { register } = useAuth();
   const [role, setRole] = useState<"candidate" | "recruiter">("candidate");
-  const [f, setF] = useState<Record<string, string>>({});
+  const [f, setF] = useState<Record<string, string>>({ name: "", email: "", password: "", phone: "", company_name: "", website: "", industry: "", size: "", location: "", description: "" });
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const set = (k: string) => (v: string) => setF((p) => ({ ...p, [k]: v }));
@@ -20,7 +20,8 @@ export default function Register() {
   const submit = async () => {
     setErr("");
     if (!f.name || !f.email || !f.password) return setErr("Name, email and password are required");
-    if (f.password.length < 8) return setErr("Password must be at least 8 characters");
+    if (f.password.length < 8 || !/[A-Za-z]/.test(f.password) || !/\d/.test(f.password)) return setErr("Password must be at least 8 characters with a letter and a number");
+    if (!/^\S+@\S+\.\S+$/.test(f.email.trim())) return setErr("Please enter a valid email address.");
     if (role === "recruiter" && !f.company_name) return setErr("Company name is required");
     setBusy(true);
     try {

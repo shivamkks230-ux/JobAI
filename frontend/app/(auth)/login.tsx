@@ -5,6 +5,7 @@ import { Pressable, Text, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { backendHost, checkHealth } from "@/src/api";
 import { useAuth } from "@/src/auth";
 import { makeStyles, useTheme } from "@/src/theme";
 import { Button, Icon, Input } from "@/src/ui";
@@ -20,6 +21,20 @@ export default function Login() {
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const [gBusy, setGBusy] = useState(false);
+  const [health, setHealth] = useState<{ ok: boolean; message: string; ms: number } | null>(null);
+  const [checking, setChecking] = useState(false);
+
+  const probe = async () => {
+    setChecking(true);
+    setHealth(await checkHealth());
+    setChecking(false);
+  };
+
+  // When a request fails with a connectivity/config error, probe /api/health so the real cause is visible.
+  const showError = (e: any) => {
+    setErr(e.message ?? "Something went wrong");
+    if (e?.kind === "network" || e?.kind === "timeout" || e?.kind === "config") probe();
+  };
 
   const submit = async () => {
     setErr("");
@@ -28,7 +43,7 @@ export default function Login() {
     try {
       await login(email.trim(), password);
     } catch (e: any) {
-      setErr(e.message);
+      showError(e);
     } finally {
       setBusy(false);
     }
@@ -39,7 +54,7 @@ export default function Login() {
     try {
       await googleLogin();
     } catch (e: any) {
-      setErr(e.message ?? "Google sign-in failed");
+      showError(e);
     } finally {
       setGBusy(false);
     }
@@ -79,6 +94,12 @@ export default function Login() {
               New to JobMatch AI? <Text style={{ color: colors.brand, fontWeight: "700" }}>Create an account</Text>
             </Text>
           </Pressable>
+          <Pressable onPress={probe} testID="login-check-connection" style={s.diag}>
+            <Icon name={health?.ok ? "checkmark-circle" : health ? "alert-circle" : "pulse-outline"} size={14} color={health?.ok ? colors.success : health ? colors.error : colors.muted} />
+            <Text style={s.diagText} testID="login-connection-status" numberOfLines={2}>
+              {checking ? "Checking server…" : health ? `${health.message}${health.ok ? ` · ${health.ms}ms` : ""}` : `Server: ${backendHost()} · tap to test connection`}
+            </Text>
+          </Pressable>
         </View>
       </KeyboardAwareScrollView>
     </View>
@@ -100,4 +121,6 @@ const useStyles = makeStyles((c) => ({
   or: { color: c.muted, fontSize: 13 },
   link: { alignItems: "center", paddingVertical: 12 },
   linkText: { color: c.onSurfaceSecondary, fontSize: 14 },
+  diag: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 8 },
+  diagText: { color: c.muted, fontSize: 12, flexShrink: 1, textAlign: "center" },
 }));

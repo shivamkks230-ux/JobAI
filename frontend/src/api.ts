@@ -16,35 +16,82 @@ export function setUnauthorizedHandler(fn: () => void) {
   onUnauthorized = fn;
 }
 
+export type ApiErrorKind = "config" | "network" | "timeout" | "http";
+
 export class ApiError extends Error {
   status: number;
-  constructor(status: number, message: string) {
+  kind: ApiErrorKind;
+  constructor(status: number, message: string, kind: ApiErrorKind = "http") {
     super(message);
     this.status = status;
+    this.kind = kind;
   }
 }
 
-function errMessage(body: any, status: number) {
-  const d = body?.detail;
-  if (typeof d === "string") return d;
-  if (Array.isArray(d) && d[0]?.msg) return `${d[0].loc?.slice(-1)[0] ?? "Field"}: ${d[0].msg}`;
-  return status >= 500 ? "Server error. Please retry." : "Something went wrong";
+// A release build must talk to a public HTTPS backend. localhost / 10.0.2.2 / plain http
+// only work in an emulator or are blocked by Android's cleartext policy.
+export function backendConfigProblem(): string | null {
+  if (!BASE) return "App is missing EXPO_PUBLIC_BACKEND_URL. Rebuild the app with the backend URL set.";
+  if (!/^https:\/\//i.test(BASE) && Platform.OS !== "web") return `Backend URL must use HTTPS (current: ${BASE}).`;
+  if (/localhost|127\.0\.0\.1|10\.0\.2\.2/.test(BASE) && Platform.OS !== "web") return `Backend URL points to a local address (${BASE}) that a phone cannot reach.`;
+  return null;
 }
 
-export async function api<T = any>(path: string, opts: { method?: string; body?: any; form?: FormData } = {}): Promise<T> {
+export const backendHost = () => (BASE ?? "not set").replace(/^https?:\/\//, "");
+
+const STATUS_MSG: Record<number, string> = {
+  400: "Please check the information entered.",
+  401: "Invalid email or password.",
+  403: "You are not authorized to perform this action.",
+  404: "Requested service was not found.",
+  409: "An account with this email already exists.",
+  429: "Too many attempts. Please wait a moment and try again.",
+};
+
+function errMessage(body: any, status: number) {
+  if (status >= 502 && status <= 504) return "Server is temporarily unavailable. Please try again.";
+  if (status >= 500) return "Something went wrong on the server. Please try again.";
+  const d = body?.detail;
+  // Prefer the server's specific, user-safe explanation (e.g. "Password must be at least 8 characters").
+  if (typeof d === "string" && d) return d;
+  if (Array.isArray(d) && d[0]?.msg) return `${d[0].loc?.slice(-1)[0] ?? "Field"}: ${d[0].msg}`;
+  return STATUS_MSG[status] ?? "Something went wrong. Please try again.";
+}
+
+const isAuthPath = (p: string) => p.startsWith("/auth") || p === "/health";
+
+export async function api<T = any>(
+  path: string,
+  opts: { method?: string; body?: any; form?: FormData; timeoutMs?: number } = {},
+): Promise<T> {
+  const cfg = backendConfigProblem();
+  if (cfg) throw new ApiError(0, cfg, "config");
+  const method = opts.method ?? (opts.body !== undefined || opts.form ? "POST" : "GET");
   const headers: Record<string, string> = {};
   if (token) headers.Authorization = `Bearer ${token}`;
   if (opts.body !== undefined) headers["Content-Type"] = "application/json";
+  const timeoutMs = opts.timeoutMs ?? (opts.form ? 120000 : /^\/(ai|coach)/.test(path) ? 90000 : 30000);
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  const started = Date.now();
+  const debug = isAuthPath(path);
+  if (debug) console.log(`AUTH_DEBUG -> ${method} ${backendHost()}/api${path}`);
   let res: Response;
   try {
     res = await fetch(`${API}${path}`, {
-      method: opts.method ?? (opts.body !== undefined || opts.form ? "POST" : "GET"),
+      method,
       headers,
       body: opts.form ?? (opts.body !== undefined ? JSON.stringify(opts.body) : undefined),
+      signal: ctrl.signal,
     });
-  } catch {
-    throw new ApiError(0, "No internet connection. Check your network and retry.");
+  } catch (e: any) {
+    clearTimeout(timer);
+    const timedOut = e?.name === "AbortError";
+    if (debug) console.log(`AUTH_DEBUG x ${method} /api${path} ${timedOut ? "TIMEOUT" : "NETWORK_ERROR"} after ${Date.now() - started}ms: ${e?.message}`);
+    if (timedOut) throw new ApiError(0, "Server is taking too long to respond. Please try again.", "timeout");
+    throw new ApiError(0, "Unable to connect to the server. Please check your internet connection.", "network");
   }
+  clearTimeout(timer);
   const text = await res.text();
   let data: any = null;
   try {
@@ -52,11 +99,23 @@ export async function api<T = any>(path: string, opts: { method?: string; body?:
   } catch {
     data = null;
   }
+  if (debug) console.log(`AUTH_DEBUG <- ${method} /api${path} ${res.status} in ${Date.now() - started}ms${res.ok ? "" : ` detail=${typeof data?.detail === "string" ? data.detail : res.status}`}`);
   if (!res.ok) {
     if (res.status === 401 && token && onUnauthorized) onUnauthorized();
     throw new ApiError(res.status, errMessage(data, res.status));
   }
   return data as T;
+}
+
+// Connectivity probe used by the login screen diagnostics.
+export async function checkHealth(): Promise<{ ok: boolean; message: string; ms: number }> {
+  const t = Date.now();
+  try {
+    await api("/health", { timeoutMs: 10000 });
+    return { ok: true, message: `Connected to ${backendHost()}`, ms: Date.now() - t };
+  } catch (e: any) {
+    return { ok: false, message: `${e.message} (${backendHost()})`, ms: Date.now() - t };
+  }
 }
 
 export async function uploadFile(path: string, file: { uri: string; name: string; mimeType?: string | null; file?: any }) {

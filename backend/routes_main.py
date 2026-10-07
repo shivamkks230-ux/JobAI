@@ -80,6 +80,8 @@ async def create_company(data: dict, owner: dict) -> dict:
 @router.post("/auth/register")
 async def register(body: RegisterIn, request: Request):
     rate_limit(request, "register", 10, 600)
+    if not (re.search(r"[A-Za-z]", body.password) and re.search(r"\d", body.password)):
+        raise HTTPException(400, "Password must contain at least one letter and one number.")
     email = body.email.lower()
     if await db.users.find_one({"email": email}, {"_id": 1}):
         raise HTTPException(409, "An account with this email already exists")

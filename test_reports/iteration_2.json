@@ -1,0 +1,42 @@
+{
+  "summary": "Iteration 2 — Auth hardening verification. Backend: 63/63 pytest cases pass (100%) — iteration 1 regression (51) + 12 new auth-hardening tests covering GET /api/health, POST /api/auth/register validation (invalid email -> 400, password 'short' -> 400, password 'abcdefghij' no-digit -> 400, missing fields -> 400, role 'admin' -> 400, valid 200 with token, duplicate 409), POST /api/auth/login (valid 200, wrong pw 401, unknown user 401), and POST /api/auth/session (invalid session_id -> 401). All 422 validation errors are now returned as readable 400s. /api/health returns {status:'ok'} with DB ping. Frontend (390x844): login screen shows 'Server: matchjob-india.preview.emergentagent.com · tap to test connection' pill (testID login-connection-status) — tapping testID login-check-connection updates to 'Connected to matchjob-india.preview.emergentagent.com · 86ms' with AUTH_DEBUG console logs (no secrets). Candidate register (TEST_cand_<rand>@example.com / Passw0rd1) lands on /home. Logout -> /login. Login with the newly registered account -> /home. Browser reload preserves session (session restore no longer logs out on network errors). Wrong password at login shows exactly 'Invalid email or password'. Recruiter login -> /dashboard, admin login -> /overview (role routing correct). Candidate regression smoke: jobs tab navigates to /jobs, saved tab navigates to /saved. 429 rate limit is correctly mapped on the client to 'Too many requests. Please try again shortly.' (not a no-internet message). Minor issues: console warning 'A component is changing an uncontrolled input to be controlled' is thrown on the register screen (likely the Phone optional field initial value is undefined) AND is surfaced as a visible red toast — users will see a scary red bar. Deprecated 'shadow*' React Native Web style props still warn across screens (carried over from iteration 1, not fixed yet).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "register screen (likely Phone optional input)", "issue": "React warning 'A component is changing an uncontrolled input to be controlled' fires on first keystroke/mount and is captured by the global error toast, so users see a red toast banner 'A component is changing an unc...' overlapping the UI. Initialize the Phone (and any other optional TextInput) state with '' instead of undefined, OR filter dev-only React warnings out of the toast surface. Reference: /app/frontend/app/(auth)/register.tsx", "testID": "register-phone-input", "priority": "MEDIUM"}
+    ],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "React Native Web styles", "issue": "Carryover from iteration 1 — console still warns '\"shadow*\" style props are deprecated. Use \"boxShadow\".' from multiple screens. Migrate shadowColor/shadowOffset/shadowOpacity/shadowRadius to the unified boxShadow prop. Reference: /app/frontend/src/ui.tsx and screen StyleSheet.create blocks."}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_backend.py",
+    "/app/backend/tests/test_auth_hardening.py",
+    "/app/backend/tests/conftest.py",
+    "/app/test_reports/pytest/iteration_2_auth.xml",
+    "/app/test_reports/pytest/iteration_2_full.xml"
+  ],
+  "action_items": [
+    "Fix the controlled/uncontrolled TextInput warning in /app/frontend/app/(auth)/register.tsx by initializing optional TextInput state (e.g. phone) to '' instead of undefined — this will also stop the red error toast users see during registration.",
+    "Optional: filter dev-only React warnings (console.error) out of the global error-toast surface so these never leak to end users even if a stray warning appears.",
+    "Carryover: migrate 'shadow*' style props to the unified 'boxShadow' prop across /app/frontend/src/ui.tsx and screen StyleSheets to silence React Native Web deprecation warnings."
+  ],
+  "critical_code_review_comments": [
+    "Auth-error classification on the client is working correctly: 409 -> 'already exists', 401 -> 'Invalid email or password', 429 -> 'Too many requests. Please try again shortly.', network/offline distinct from HTTP status errors — no more blanket 'No internet connection' seen.",
+    "Register rate limiter is fairly tight (two rapid register attempts from the same IP return 429 for ~60s). Fine for production abuse protection; just note it when writing UI regression suites — tests should back off between register calls."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_auth_hardening.py (new — 12 tests)"
+  ],
+  "success_rate": {"backend": "100% (63/63)", "frontend": "100% of verifiable flows (connection pill, register->home, logout, re-login, session persist on reload, wrong-pw error, recruiter->/dashboard, admin->/overview, jobs/saved regression). Duplicate-email UI mapping and weak-password inline UI mapping could not be observed live because the register rate limiter kicked in (429 shown correctly instead), but both are covered end-to-end by backend tests (409 and 400) and the client-side error mapping is implemented in /app/frontend/src/api.ts."},
+  "seed_data_creation": "One disposable candidate TEST_cand_<rand>@example.com was created via UI during flow verification; it was NOT deleted because logout happens before cleanup. Low volume. No seeded accounts modified. Backend tests still create+delete their own ephemeral TEST_* accounts.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Validation now returns 400 (not 422). Any older test that expects 422 for pydantic errors must be updated. Register endpoint is rate-limited aggressively — insert ~60s backoff between consecutive register attempts in UI tests from the same client. The global error-toast in the app surfaces ALL console.error messages, including React dev warnings; be prepared to see spurious red toasts that are not real auth errors. For Google OAuth: automation can only verify POST /api/auth/session with an invalid session_id returns 401 (covered). testIDs used and confirmed present: login-connection-status, login-check-connection, login-email-input, login-password-input, login-submit-button, register-name-input, register-email-input, register-password-input, register-submit-button, register-role-recruiter, tab-profile, tab-jobs, tab-saved, profile-logout-button.",
+  "rca_of_issue": "N/A — all reported bugs from the problem statement (Android 'No internet' message, incorrect error classification, session logout on transient errors) are verified fixed. One secondary observation (red toast from React dev warning) traced to global error toast listening to console.error and the register screen having an uncontrolled->controlled input transition."
+}

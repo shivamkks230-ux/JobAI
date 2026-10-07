@@ -95,13 +95,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const me = await api<User>("/auth/me");
           setUser(me);
         }
-      } catch {
-        await clearLocal();
+      } catch (e: any) {
+        // Only an invalid/expired session logs the user out; a network blip on app start must not.
+        if (e?.status === 401 || e?.status === 403) await clearLocal();
+        else console.log("AUTH_DEBUG session restore failed:", e?.kind, e?.status, e?.message);
       } finally {
         setLoading(false);
       }
     })();
   }, [clearLocal, exchange]);
+
+  // Android/iOS: Emergent redirects back via deep link (myscheme://#session_id=...). Chrome Custom Tabs
+  // often reports "dismiss" and delivers the link later, so keep a permanent listener for hot links.
+  useEffect(() => {
+    if (Platform.OS === "web") return;
+    const sub = Linking.addEventListener("url", ({ url }) => {
+      const sid = extractSessionId(url);
+      if (sid) exchange(sid).catch((e) => console.log("AUTH_DEBUG google exchange (deep link) failed:", e?.status, e?.message));
+    });
+    return () => sub.remove();
+  }, [exchange]);
 
   const login = useCallback(
     async (email: string, password: string) => {
@@ -135,9 +148,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirect)}`,
         redirect,
       );
-      const url = (result as any).url ?? captured ?? (await Linking.getInitialURL());
+      console.log("AUTH_DEBUG google auth session result:", result.type, "redirect:", redirect);
+      let url: string | null = (result as any).url ?? captured;
+      // On Android the deep link can arrive shortly after the browser closes; wait up to 3s for it.
+      for (let i = 0; !extractSessionId(url) && i < 15; i++) {
+        await new Promise((r) => setTimeout(r, 200));
+        url = captured;
+      }
+      if (!extractSessionId(url)) url = await Linking.getInitialURL();
       const sid = extractSessionId(url);
       if (sid) await exchange(sid);
+      else if (result.type !== "success") throw new Error("Google sign-in was cancelled or did not return to the app.");
     } finally {
       sub.remove();
     }

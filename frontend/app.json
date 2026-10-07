@@ -21,6 +21,7 @@
       },
       "package": "com.emergent.matchjobindia.fkjq0m",
       "permissions": [
+        "android.permission.INTERNET",
         "android.permission.READ_MEDIA_IMAGES"
       ]
     },
