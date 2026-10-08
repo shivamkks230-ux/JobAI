@@ -57,3 +57,8 @@ MONGO_URL, DB_NAME, EMERGENT_LLM_KEY, SEED_TEST_DATA (set false/remove in produc
 - Fix in code: api.ts falls back to Expo hostUri (Expo Go/dev proxy works even without the var); config error message now tells the user exactly what to do.
 - Production path: set EXPO_PUBLIC_BACKEND_URL in Deployment Panel → Secrets, redeploy, regenerate build (secrets not auto-overwritten on redeploy).
 - Local Android Studio builds: .env must be recreated manually (not synced via GitHub by design).
+
+## 2026-06 Local Android Studio build: point to production backend
+- Phone cannot reach preview domain (404); production host matchjob-india.emergent.host reachable + healthy from phone.
+- app.json extra.backendUrl now = https://matchjob-india.emergent.host (fallback used by standalone/local builds when EXPO_PUBLIC_BACKEND_URL env is absent). Preview/dev still uses .env value.
+- Production DB seeded (test accounts work on prod too).

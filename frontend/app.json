@@ -58,7 +58,7 @@
       "typedRoutes": true
     },
     "extra": {
-      "backendUrl": "https://matchjob-india.preview.emergentagent.com"
+      "backendUrl": "https://matchjob-india.emergent.host"
     }
   }
 }
