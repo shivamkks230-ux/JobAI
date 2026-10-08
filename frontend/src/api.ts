@@ -1,7 +1,21 @@
+import Constants from "expo-constants";
 import { Platform } from "react-native";
 
-export const BASE = process.env.EXPO_PUBLIC_BACKEND_URL;
-export const API = `${BASE}/api`;
+function resolveBase(): string | null {
+  const env = process.env.EXPO_PUBLIC_BACKEND_URL;
+  if (env) return env.replace(/\/+$/, "");
+  // Expo Go / dev preview fallback: /api on the Metro host is proxied to the backend.
+  // Standalone builds (APK/AAB) have no hostUri and must bundle EXPO_PUBLIC_BACKEND_URL.
+  const host = Constants.expoConfig?.hostUri;
+  if (host) {
+    const scheme = /:\d+$/.test(host) && !host.includes("emergentagent.com") ? "http" : "https";
+    return `${scheme}://${host}`;
+  }
+  return null;
+}
+
+export const BASE = resolveBase();
+export const API = BASE ? `${BASE}/api` : "";
 
 let token: string | null = null;
 let onUnauthorized: (() => void) | null = null;
@@ -31,7 +45,7 @@ export class ApiError extends Error {
 // A release build must talk to a public HTTPS backend. localhost / 10.0.2.2 / plain http
 // only work in an emulator or are blocked by Android's cleartext policy.
 export function backendConfigProblem(): string | null {
-  if (!BASE) return "App is missing EXPO_PUBLIC_BACKEND_URL. Rebuild the app with the backend URL set.";
+  if (!BASE) return "This build was created without the server address (EXPO_PUBLIC_BACKEND_URL). Open the app via the Expo Go QR code, or set it in Deployment → Secrets, redeploy and generate a new build.";
   if (!/^https:\/\//i.test(BASE) && Platform.OS !== "web") return `Backend URL must use HTTPS (current: ${BASE}).`;
   if (/localhost|127\.0\.0\.1|10\.0\.2\.2/.test(BASE) && Platform.OS !== "web") return `Backend URL points to a local address (${BASE}) that a phone cannot reach.`;
   return null;

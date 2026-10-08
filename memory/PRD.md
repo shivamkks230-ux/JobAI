@@ -51,3 +51,9 @@ MONGO_URL, DB_NAME, EMERGENT_LLM_KEY, SEED_TEST_DATA (set false/remove in produc
 - Root cause analysis: backend publicly reachable over HTTPS; client mapped every fetch exception to "No internet" (hid misconfigured/local/HTTP backend URL in locally-built APK, timeouts, cleartext block). Android Google flow could drop late deep links.
 - Fixes: error classification (network/timeout/config/HTTP), 30s/90s/120s timeouts, backend URL validation (HTTPS, no localhost/10.0.2.2), /api/health with DB ping, login "test connection" diagnostic, AUTH_DEBUG logs (no secrets), 422→400 readable errors, password policy (8+ chars, letter+number), session restore only clears on 401/403, permanent deep-link listener for Google, INTERNET permission explicit.
 - Tests: iteration_2 backend 63/63, frontend auth flows pass.
+
+## 2026-06 Android build missing backend URL (confirmed via user screenshot)
+- Root cause confirmed: standalone Android build bundled without EXPO_PUBLIC_BACKEND_URL ("not set"). .env is git-ignored and never committed, so builds made from the repo/GitHub or builds without injected secrets lack it.
+- Fix in code: api.ts falls back to Expo hostUri (Expo Go/dev proxy works even without the var); config error message now tells the user exactly what to do.
+- Production path: set EXPO_PUBLIC_BACKEND_URL in Deployment Panel → Secrets, redeploy, regenerate build (secrets not auto-overwritten on redeploy).
+- Local Android Studio builds: .env must be recreated manually (not synced via GitHub by design).
