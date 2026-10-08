@@ -3,9 +3,18 @@ import { Platform } from "react-native";
 
 function resolveBase(): string | null {
   const env = process.env.EXPO_PUBLIC_BACKEND_URL;
-  if (env) return env.replace(/\/+$/, "");
-  // Expo Go / dev preview fallback: /api on the Metro host is proxied to the backend.
-  // Standalone builds (APK/AAB) have no hostUri and must bundle EXPO_PUBLIC_BACKEND_URL.
+  if (env && env !== "not set" && env.trim() !== "") return env.replace(/\/+$/, "");
+
+  // Fallback 1: embedded extra.backendUrl from app.json (guaranteed to be bundled by Gradle/Android Studio)
+  const extraUrl =
+    (Constants.expoConfig?.extra as any)?.backendUrl ||
+    (Constants.expoConfig?.extra as any)?.EXPO_PUBLIC_BACKEND_URL ||
+    (Constants.manifest as any)?.extra?.backendUrl;
+  if (extraUrl && typeof extraUrl === "string" && extraUrl.trim() !== "" && extraUrl !== "not set") {
+    return extraUrl.replace(/\/+$/, "");
+  }
+
+  // Fallback 2: Expo Go / dev preview Metro host
   const host = Constants.expoConfig?.hostUri;
   if (host) {
     const scheme = /:\d+$/.test(host) && !host.includes("emergentagent.com") ? "http" : "https";
