@@ -352,7 +352,7 @@ class TestFileValidation:
     def test_upload_txt_rejected(self, candidate_token):
         files = {"file": ("resume.txt", b"hello", "text/plain")}
         r = requests.post(f"{API}/candidate/resume", headers=h(candidate_token), files=files)
-        assert r.status_code == 400
+        assert r.status_code == 415  # unsupported type -> 415 (updated contract)
 
     def test_upload_fake_pdf_rejected(self, candidate_token):
         files = {"file": ("fake.pdf", b"not a pdf", "application/pdf")}

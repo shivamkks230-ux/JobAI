@@ -1,4 +1,5 @@
 import Constants from "expo-constants";
+import * as FileSystem from "expo-file-system/legacy";
 import { Platform } from "react-native";
 
 function resolveBase(): string | null {
@@ -68,6 +69,8 @@ const STATUS_MSG: Record<number, string> = {
   403: "You are not authorized to perform this action.",
   404: "Requested service was not found.",
   409: "An account with this email already exists.",
+  413: "Resume file is too large. Maximum size is 5 MB.",
+  415: "Unsupported file type. Please upload PDF, DOC or DOCX.",
   429: "Too many attempts. Please wait a moment and try again.",
 };
 
@@ -141,14 +144,43 @@ export async function checkHealth(): Promise<{ ok: boolean; message: string; ms:
   }
 }
 
-export async function uploadFile(path: string, file: { uri: string; name: string; mimeType?: string | null; file?: any }) {
-  const form = new FormData();
-  if (Platform.OS === "web") {
-    const blob = file.file ?? (await (await fetch(file.uri)).blob());
-    form.append("file", blob, file.name);
-  } else {
-    form.append("file", { uri: file.uri, name: file.name, type: file.mimeType ?? "application/octet-stream" } as any);
+export async function uploadFile(path: string, file: { uri: string; name: string; mimeType?: string | null; file?: any; size?: number }) {
+  console.log(`RESUME_UPLOAD_DEBUG -> upload started: name=${file.name} type=${file.mimeType ?? "?"} size=${file.size ?? "?"} url=${backendHost()}/api${path}`);
+  const t0 = Date.now();
+  const cfg = backendConfigProblem();
+  if (cfg) throw new ApiError(0, cfg, "config");
+  if (Platform.OS !== "web") {
+    // Native: RN fetch + FormData cannot stream content:// / cache URIs reliably on Android,
+    // so use the native uploader (OkHttp) which reads the file directly from disk.
+    let res: FileSystem.FileSystemUploadResult;
+    try {
+      res = await FileSystem.uploadAsync(`${API}${path}`, file.uri, {
+        httpMethod: "POST",
+        uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+        fieldName: "file",
+        mimeType: file.mimeType ?? "application/octet-stream",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+    } catch (e: any) {
+      console.log(`RESUME_UPLOAD_DEBUG x native upload NETWORK_ERROR after ${Date.now() - t0}ms: ${e?.message}`);
+      throw new ApiError(0, "Unable to connect to the server. Please check your internet connection.", "network");
+    }
+    console.log(`RESUME_UPLOAD_DEBUG <- status=${res.status} in ${Date.now() - t0}ms`);
+    let data: any = null;
+    try {
+      data = res.body ? JSON.parse(res.body) : null;
+    } catch {
+      data = null;
+    }
+    if (res.status < 200 || res.status >= 300) {
+      if (res.status === 401 && token && onUnauthorized) onUnauthorized();
+      throw new ApiError(res.status, errMessage(data, res.status));
+    }
+    return data;
   }
+  const form = new FormData();
+  const blob = file.file ?? (await (await fetch(file.uri)).blob());
+  form.append("file", blob, file.name);
   return api(path, { form });
 }
 

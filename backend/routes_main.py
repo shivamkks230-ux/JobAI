@@ -210,13 +210,15 @@ async def delete_account(user=Depends(get_current_user)):
 # ============================== FILES ==============================
 async def store_file(user: dict, f: UploadFile, kind: str, allowed: dict, max_size: int) -> dict:
     ext = (f.filename or "").rsplit(".", 1)[-1].lower() if "." in (f.filename or "") else ""
+    logger.info("RESUME_UPLOAD_DEBUG upload started user=%s kind=%s name=%s ext=%s", user["id"], kind, f.filename, ext)
     if ext not in allowed:
-        raise HTTPException(400, f"Unsupported file type. Allowed: {', '.join(allowed)}")
+        raise HTTPException(415, f"Unsupported file type. Allowed: {', '.join(allowed)}")
     data = await f.read()
     if len(data) == 0:
-        raise HTTPException(400, "File is empty")
+        raise HTTPException(400, "Invalid file: file is empty")
     if len(data) > max_size:
-        raise HTTPException(400, f"File too large. Max {max_size // (1024 * 1024)} MB")
+        raise HTTPException(413, f"File is too large. Maximum size is {max_size // (1024 * 1024)} MB")
+    logger.info("RESUME_UPLOAD_DEBUG received %d bytes, validating", len(data))
     # magic-byte validation
     if ext == "pdf" and not data.startswith(b"%PDF"):
         raise HTTPException(400, "File is not a valid PDF")
@@ -338,6 +340,7 @@ async def run_analysis(user_id: str, resume_id: str, text: str):
     try:
         if len(text.strip()) < 80:
             raise ValueError("Could not read enough text from this file. Try a text-based PDF or DOCX.")
+        logger.info("RESUME_UPLOAD_DEBUG ai analysis started resume=%s text_len=%d", resume_id, len(text))
         result = await ai.analyze_resume(text)
         parsed = result.get("parsed") or {}
         analysis = {"resume_id": resume_id, "user_id": user_id, "status": "completed",
@@ -369,8 +372,9 @@ async def run_analysis(user_id: str, resume_id: str, text: str):
             upd["updated_at"] = iso()
             await db.candidate_profiles.update_one({"user_id": user_id}, {"$set": upd})
         await notify(user_id, "resume_analyzed", "Resume analysis ready", f"Your resume score is {analysis['score']}/100.", {})
+        logger.info("RESUME_UPLOAD_DEBUG ai analysis completed resume=%s score=%s", resume_id, analysis["score"])
     except Exception as e:
-        logger.error("resume analysis failed: %s", e)
+        logger.error("RESUME_UPLOAD_DEBUG ai analysis failed resume=%s error=%s", resume_id, e)
         await db.resume_analysis.update_one({"resume_id": resume_id}, {"$set": {
             "resume_id": resume_id, "user_id": user_id, "status": "failed", "error": str(e)[:300], "updated_at": iso()}}, upsert=True)
 
@@ -388,6 +392,7 @@ async def upload_resume(request: Request, file: UploadFile = File(...), user=Dep
     await db.resume_analysis.insert_one({"resume_id": resume["id"], "user_id": user["id"], "status": "processing",
                                          "created_at": iso(), "updated_at": iso()})
     await track("resume_uploaded", user["id"])
+    logger.info("RESUME_UPLOAD_DEBUG stored file_id=%s resume_id=%s, starting AI analysis", rec["id"], resume["id"])
     asyncio.create_task(run_analysis(user["id"], resume["id"], text))
     return {k: v for k, v in resume.items() if k not in ("text", "_id")}
 

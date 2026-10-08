@@ -1,0 +1,47 @@
+{
+  "summary": "Iteration 3 — Resume upload fix verification. NEW resume regression suite (test_resume_upload.py, parametrized preview+prod, 14 tests): PREVIEW 7/7 pass — POST /candidate/resume real .docx -> 200 (file_name/ext/size correct, text field NOT leaked), .txt -> 415 'Unsupported file type', 6MB pdf -> 413 'too large', fake pdf bytes -> 400 'not a valid PDF', GET /candidate/resume polls to analysis completed with score (42), POST reanalyze -> {'status':'processing'}, DELETE -> ok and GET confirms resume gone. PROD (matchjob-india.emergent.host): happy path 5/7 passes (docx 200, analysis completes, reanalyze, delete) BUT prod is running STALE code — .txt returns 400 (old msg 'Unsupported file type. Allowed: pdf, doc, docx') instead of 415, and 6MB pdf returns 400 ('File too large. Max 5 MB') instead of 413. Fake-pdf 400 passes because old code also returned 400 for it. CRITICAL: prod deployment must be redeployed with current code. Full prior regression suite re-run: 63/63 pass (initial 429s were login rate-limit 10/300s sliding window from repeated test logins — resolved after window reset, not a real regression). One stale test updated: test_backend.py::TestFileValidation::test_upload_txt_rejected now expects 415 (matches new contract). FRONTEND web (390x844, EXPO_PUBLIC_BACKEND_URL=preview): login candidate -> /home, home sections render (Recommended/match/Recent), home-resume-button -> /resume, upload small .docx via DocumentPicker (resume-upload-button / resume-replace-button) -> success toast 'Resume uploaded. AI analysis started.' (data-testid=toast-message; note toast auto-dismisses after 2.8s), file card shows name 'test_resume.docx' + size '1 KB', analysis completes within ~15s showing score card 44/100 (resume-score-value), strengths list (resume-strengths) and suggestions list (resume-suggestions) visible. Regression smoke: Jobs tab loads with 6 job cards, Applications tab loads, Profile -> logout -> /login, re-login works. No red screens, no console errors. SECRETS CHECK PASS: RESUME_UPLOAD_DEBUG lines in /var/log/supervisor/backend.err.log contain only user id, kind, filename, ext, byte count, resume id, text_len, score — zero lines match bearer|token|password|authorization|eyJ. Client-side console RESUME_UPLOAD_DEBUG shows name/type/url only, no auth header. Native (Android) uploadAsync path could not be executed here (web preview only) — code reviewed in src/api.ts: uses expo-file-system/legacy uploadAsync MULTIPART with Bearer header, maps non-2xx via errMessage, network errors -> 'Unable to connect...'.",
+  "backend_issues": {
+    "critical": [
+      {"endpoint": "POST https://matchjob-india.emergent.host/api/candidate/resume", "issue": "PROD deployment is stale — returns OLD error contract: .txt -> 400 (expected 415) with old message 'Unsupported file type. Allowed: pdf, doc, docx'; 6MB pdf -> 400 (expected 413) with old message 'File too large. Max 5 MB'. Preview returns correct 415/413/400. Client STATUS_MSG mappings for 413/415 will never fire against prod until it is redeployed. Happy path (docx 200, analysis, reanalyze, delete) works on prod.", "priority": "CRITICAL"}
+    ],
+    "minor": [
+      {"endpoint": "POST /api/candidate/resume", "issue": "Native uploadAsync client call has no explicit timeout (120s timeout only applies to the web fetch path in api()); a hung OkHttp upload could wait on OS defaults. Cosmetic — backend handles the file fine."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "React Native Web styles", "issue": "Carryover from iterations 1-2 (not re-verified this round, presumably still present): 'shadow*' style props deprecated warnings across screens. Migrate to unified boxShadow. Reference: /app/frontend/src/ui.tsx and screen StyleSheet blocks."}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_resume_upload.py",
+    "/app/backend/tests/test_backend.py",
+    "/app/backend/tests/test_auth_hardening.py",
+    "/app/test_reports/pytest/iteration_3_resume.xml",
+    "/app/test_reports/pytest/iteration_3_full.xml"
+  ],
+  "action_items": [
+    "CRITICAL: Redeploy production backend (matchjob-india.emergent.host) — it is running pre-fix code (old 400-only error contract). Verify after deploy: txt -> 415, >5MB -> 413, fake pdf -> 400.",
+    "Physical Android verification still required by user (cannot be done here): after pulling latest code run `yarn install` (expo-file-system dependency) then rebuild in Android Studio and upload a real .docx/pdf on device.",
+    "Carryover: fix uncontrolled->controlled TextInput warning on register screen (initialize optional fields to '') — iteration 2 item, not retested this round.",
+    "Optional: add an explicit timeout/cancellation around FileSystem.uploadAsync in src/api.ts for parity with the 120s web upload timeout."
+  ],
+  "critical_code_review_comments": [
+    "api.ts uploadFile correctly branches Platform.OS !== 'web' -> FileSystem.uploadAsync (OkHttp, reads file from disk) vs web -> fetch+FormData; Authorization header attached on both paths; non-2xx parsed via shared errMessage so 413/415 map to friendly messages.",
+    "Backend store_file validation order is correct: extension allowlist (415) -> empty file (400) -> size cap (413) -> magic bytes (400). RESUME_UPLOAD_DEBUG logs are free of secrets/PII beyond user id and filename.",
+    "Login rate limiter (10/300s sliding window per IP, in-memory) aggressively throttles automated suites — future test runs should reuse session tokens or space suites by >300s. In-memory limiter resets on backend restart (acceptable at this scale, noted)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_resume_upload.py (new — 14 tests, preview+prod parametrized)",
+    "/app/backend/tests/test_backend.py (1 assertion updated: txt upload now expects 415 per new contract)"
+  ],
+  "success_rate": {"backend": "preview 100% (7/7 resume + 63/63 regression); prod happy-path 100%, error-code contract 2 failures due to stale deploy", "frontend": "100% — upload flow (toast, file card, score 44/100, strengths/suggestions), home/jobs/applications smoke, logout+re-login all pass"},
+  "seed_data_creation": "Uploaded/deleted several TEST docx/pdf/txt resumes for candidate@test.jobmatchai.in via API and UI; final state: candidate has one active analyzed resume (test_resume.docx, score 44) left in place from UI verification. No seeded accounts modified.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Resume error contract is now 415 (type) / 413 (size) / 400 (empty, invalid magic bytes) — old tests expecting 400 for txt were updated. PROD backend is a SEPARATE stale deployment; preview is current. After prod redeploy, re-run: pytest /app/backend/tests/test_resume_upload.py (should be 14/14). Login is rate-limited 10/300s per IP sliding window — if fixtures fail with 429, wait 5 min; use -n 0 to avoid xdist multiplying logins. Resume upload limit is 10/hour/user, reanalyze 5/hour/user. Toast testID is toast-message and it auto-dismisses in 2.8s — assert on it immediately after the action. On stack screens (e.g. /resume) the tab bar is hidden — click data-testid=header-back-button before tab navigation. Fixtures live in /tmp/fixtures (regenerate if gone: docx via zipfile with PK header, 6MB pdf with %PDF header, fake pdf without %PDF).",
+  "rca_of_issue": "Original bug: Android fetch+FormData cannot stream content:// cache URIs -> 'Unable to connect'. Fix (native uploadAsync via expo-file-system/legacy) verified by code review + web path verified end-to-end; native path untestable in this environment. NEW issue found this iteration: prod deployment never received the fix — error responses on prod use old codes/messages while preview is correct. Repro: curl -F file=@x.txt https://matchjob-india.emergent.host/api/candidate/resume -> 400 (should be 415); same against preview -> 415. Mitigation: redeploy prod from current main."
+}

@@ -62,3 +62,9 @@ MONGO_URL, DB_NAME, EMERGENT_LLM_KEY, SEED_TEST_DATA (set false/remove in produc
 - Phone cannot reach preview domain (404); production host matchjob-india.emergent.host reachable + healthy from phone.
 - app.json extra.backendUrl now = https://matchjob-india.emergent.host (fallback used by standalone/local builds when EXPO_PUBLIC_BACKEND_URL env is absent). Preview/dev still uses .env value.
 - Production DB seeded (test accounts work on prod too).
+
+## 2026-06 Resume upload fix (Android)
+- Root cause: Android RN fetch+FormData cannot stream content:///cache file URIs -> "Network request failed". Backend (preview+prod) verified fine via curl incl 4.3MB PDF.
+- Fix: native uploads use expo-file-system/legacy uploadAsync (OkHttp). Web unchanged (fetch FormData).
+- Backend: 415 unsupported type, 413 >5MB, 400 invalid file; RESUME_UPLOAD_DEBUG logs (no secrets).
+- Iteration_3: preview 7/7 resume tests, 63/63 regression, web UI upload+analysis pass. NOTE: production backend runs pre-fix code until user redeploys.
