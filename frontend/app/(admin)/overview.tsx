@@ -75,9 +75,10 @@ export default function Overview() {
   };
 
   const METRICS = [
-    ["total_users", "Total users"], ["active_users", "Active (30d)"], ["total_companies", "Companies"], ["verified_companies", "Verified cos."],
-    ["total_jobs", "Total jobs"], ["active_jobs", "Active jobs"], ["applications", "Applications"], ["interviews", "Interviews"],
-    ["hires", "Hires"], ["revenue_inr", "Revenue (₹)"], ["pending_jobs", "Jobs to review"], ["open_reports", "Open reports"],
+    ["total_users", "Total users"], ["candidates", "Candidates"], ["recruiters", "Recruiters"], ["active_users", "Active (30d)"],
+    ["total_jobs", "Total jobs"], ["pending_jobs", "Pending approvals"], ["active_jobs", "Published jobs"], ["rejected_jobs", "Rejected jobs"],
+    ["applications", "Applications"], ["shortlisted", "Shortlisted"], ["interviews", "Interviews"], ["hires", "Hired"],
+    ["total_companies", "Companies"], ["verified_companies", "Verified cos."], ["open_reports", "Open reports"], ["revenue_inr", "Revenue (₹)"],
   ];
 
   return (
@@ -107,7 +108,7 @@ export default function Overview() {
             <Button title="Add verified job" small icon="add" onPress={() => router.push("/job-form")} testID="admin-add-job" />
             <Button title="Categories & skills" small variant="secondary" onPress={() => router.push("/admin-taxonomy")} testID="admin-taxonomy-link" />
             <Button title="Plans" small variant="secondary" onPress={() => router.push("/admin-plans")} testID="admin-plans-link" />
-            <Button title="Applications" small variant="outline" onPress={() => router.push("/users?tab=applications" as any)} testID="admin-applications-link" />
+            <Button title="Applications" small variant="outline" onPress={() => router.push("/applications" as any)} testID="admin-applications-link" />
           </View>
 
           {an.isLoading ? <LoadingView /> : an.isError ? <ErrorView onRetry={an.refetch} /> : (

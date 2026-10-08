@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from core import db, iso, new_id, clean, require_roles, audit, notify
-from domain import days_ago_iso, expire_jobs, annual
+from domain import days_ago_iso, expire_jobs, profile_completion
 from routes_recruiter import JobIn, _job_fields
 
 router = APIRouter(prefix="/api/admin")
@@ -31,6 +31,12 @@ async def metrics(user=Depends(admin_only)):
         "total_jobs": await db.jobs.count_documents({}),
         "active_jobs": await db.jobs.count_documents({"status": "published"}),
         "pending_jobs": await db.jobs.count_documents({"status": "pending_approval"}),
+        "rejected_jobs": await db.jobs.count_documents({"status": "rejected"}),
+        "shortlisted": await db.applications.count_documents({"stage": "shortlisted"}),
+        "interview_stage": await db.applications.count_documents({"stage": "interview"}),
+        "active_candidates": await db.users.count_documents({"role": "candidate", "last_active_at": {"$gte": days_ago_iso(30)}}),
+        "active_recruiters": await db.users.count_documents({"role": "recruiter", "last_active_at": {"$gte": days_ago_iso(30)}}),
+        "admins": await db.users.count_documents({"role": "admin"}),
         "applications": await db.applications.count_documents({}),
         "interviews": await db.interviews.count_documents({}),
         "hires": await db.applications.count_documents({"stage": "hired"}),
@@ -94,6 +100,20 @@ async def users(role: str = "", q: str = "", status: str = "", page: int = 1, us
         query["$or"] = [{"name": rx}, {"email": rx}]
     total = await db.users.count_documents(query)
     items = await db.users.find(query, {"_id": 0, "password_hash": 0}).sort("created_at", -1).skip((page - 1) * 30).limit(30).to_list(30)
+    for u in items:
+        if u["role"] == "candidate":
+            p = await db.candidate_profiles.find_one({"user_id": u["id"]}, {"_id": 0}) or {}
+            has_resume = bool(await db.resumes.find_one({"user_id": u["id"], "is_active": True, "deleted": {"$ne": True}}, {"_id": 1}))
+            u["profile_completion"] = profile_completion(p, has_resume)
+            u["has_resume"] = has_resume
+            u["applications_count"] = await db.applications.count_documents({"candidate_id": u["id"]})
+        elif u["role"] == "recruiter":
+            c = await db.companies.find_one({"id": u.get("company_id")}, {"_id": 0, "name": 1, "verification_status": 1}) or {}
+            u["company_name"] = c.get("name")
+            u["company_status"] = c.get("verification_status")
+            u["jobs_posted"] = await db.jobs.count_documents({"posted_by": u["id"]})
+            u["jobs_published"] = await db.jobs.count_documents({"posted_by": u["id"], "status": "published"})
+            u["applications_received"] = await db.applications.count_documents({"company_id": u.get("company_id")}) if u.get("company_id") else 0
     return {"items": items, "total": total, "has_more": page * 30 < total}
 
 
@@ -165,6 +185,11 @@ async def jobs(status: str = "", q: str = "", page: int = 1, user=Depends(admin_
         query["$or"] = [{"title": rx}, {"company_name": rx}]
     total = await db.jobs.count_documents(query)
     items = await db.jobs.find(query, {"_id": 0, "description": 0}).sort("created_at", -1).skip((page - 1) * 30).limit(30).to_list(30)
+    pids = list({j.get("posted_by") for j in items if j.get("posted_by")})
+    rec = {u["id"]: u for u in await db.users.find({"id": {"$in": pids}}, {"_id": 0, "id": 1, "name": 1, "email": 1}).to_list(100)}
+    for j in items:
+        r = rec.get(j.get("posted_by")) or {}
+        j["recruiter_name"], j["recruiter_email"] = r.get("name"), r.get("email")
     return {"items": items, "total": total, "has_more": page * 30 < total}
 
 
@@ -237,9 +262,14 @@ async def admin_edit_job(job_id: str, body: JobIn, user=Depends(admin_only)):
 
 
 @router.get("/applications")
-async def applications(page: int = 1, user=Depends(admin_only)):
-    total = await db.applications.count_documents({})
-    items = await db.applications.find({}, {"_id": 0, "cover_letter": 0, "recruiter_notes": 0}).sort("applied_at", -1).skip((page - 1) * 30).limit(30).to_list(30)
+async def applications(page: int = 1, stage: str = "", user=Depends(admin_only)):
+    q = {"stage": stage} if stage else {}
+    total = await db.applications.count_documents(q)
+    items = await db.applications.find(q, {"_id": 0, "cover_letter": 0, "recruiter_notes": 0}).sort("applied_at", -1).skip((page - 1) * 30).limit(30).to_list(30)
+    rids = list({a.get("recruiter_id") for a in items if a.get("recruiter_id")})
+    names = {u["id"]: u["name"] for u in await db.users.find({"id": {"$in": rids}}, {"_id": 0, "id": 1, "name": 1}).to_list(100)}
+    for a in items:
+        a["recruiter_name"] = names.get(a.get("recruiter_id"))
     return {"items": items, "total": total, "has_more": page * 30 < total}
 
 

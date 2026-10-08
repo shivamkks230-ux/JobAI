@@ -171,8 +171,10 @@ async def purge_test_data(keep_user_id: str | None = None) -> dict:
 async def startup_seed():
     await create_indexes()
     await seed_config()
-    if os.environ.get("SEED_TEST_DATA", "").lower() == "true":
+    # Seed test data only once per database; after an admin purges it, it never comes back.
+    if os.environ.get("SEED_TEST_DATA", "").lower() == "true" and not await db.system_flags.find_one({"key": "test_data_seeded"}):
         await seed_test_data()
+        await db.system_flags.insert_one({"key": "test_data_seeded", "created_at": iso()})
 
 
 if __name__ == "__main__":

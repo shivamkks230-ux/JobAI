@@ -70,6 +70,7 @@ export default function Candidates() {
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <Badge text={label(a.stage)} tone={a.stage === "rejected" ? "error" : a.stage === "hired" ? "success" : "brand"} />
                 {!a.viewed_at && <Badge text="New" tone="success" />}
+                {a.ai_resume_score != null && <Badge text={`AI ${a.ai_resume_score}`} tone="neutral" />}
                 <Text style={s.sub} numberOfLines={1}>{a.job_title} · {timeAgo(a.applied_at)}</Text>
               </View>
             </Card>

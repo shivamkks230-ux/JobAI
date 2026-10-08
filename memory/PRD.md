@@ -68,3 +68,12 @@ MONGO_URL, DB_NAME, EMERGENT_LLM_KEY, SEED_TEST_DATA (set false/remove in produc
 - Fix: native uploads use expo-file-system/legacy uploadAsync (OkHttp). Web unchanged (fetch FormData).
 - Backend: 415 unsupported type, 413 >5MB, 400 invalid file; RESUME_UPLOAD_DEBUG logs (no secrets).
 - Iteration_3: preview 7/7 resume tests, 63/63 regression, web UI upload+analysis pass. NOTE: production backend runs pre-fix code until user redeploys.
+
+## 2026-06 Production update (iteration_4: backend 20/20, frontend admin/recruiter flows pass)
+- All recruiter jobs -> pending_approval; admin approves/rejects (with reason) before candidates see them.
+- New admin console: dark sidebar on wide screens (>=900px), 5-item bottom bar on phones. Sections: Dashboard, Job Approvals, Published, Rejected, Companies, Users (All/Candidates/Recruiters/Admins/Active/Suspended), Candidates, Recruiters, Applications (stage filters), Reports & Analytics, Reported Content, Settings, Notifications, Logout.
+- Admin APIs enriched (recruiter name/email on jobs, candidate/recruiter stats, stage filter, new metrics).
+- Applications store recruiter_id, candidate_email, ai_resume_score, read.
+- Applicant actions: Move to Interview, Mark Hired, View/Download resume.
+- Errors: session-expired (401) and permission (403) messages.
+- Test data seeds once per DB (system_flags marker), so purge is permanent.

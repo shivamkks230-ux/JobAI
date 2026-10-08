@@ -1,0 +1,43 @@
+{
+  "summary": "Iteration 4 — JobMatch AI admin approval flow + enriched admin APIs + reject-with-reason sheet + mobile admin bottom bar. BACKEND (new /app/backend/tests/test_approval_flow.py, 20 pytest tests, 20/20 PASS against preview https://matchjob-india.preview.emergentagent.com): RBAC 4/4 (no-token /admin/metrics 403, candidate/recruiter get 403 on /admin/jobs|/admin/users|/admin/metrics); ApprovalFlow 11/11 (recruiter POST /recruiter/jobs -> status=pending_approval; candidate GET /jobs excludes it; admin GET /admin/metrics returns pending_jobs/rejected_jobs/shortlisted/active_candidates/active_recruiters all present with pending_jobs>=1; GET /admin/jobs?status=pending_approval returns item with recruiter_name AND recruiter_email populated; POST /admin/jobs/{id}/moderate {action:approve} -> job moves to published, candidate /jobs now includes it, admin /admin/jobs?status=published includes it; candidate POST /applications -> 200 with recruiter_id, candidate_email, read=false; duplicate POST -> 409; recruiter dashboard metrics.total_applications>=1 and recent_applications contains new app; POST /recruiter/applications/{id}/stage {stage:shortlisted} -> admin metrics.shortlisted increments; GET /admin/applications?stage=shortlisted filters correctly and includes recruiter_name; stage:hired -> admin metrics.hires increments; candidate /notifications includes stage_* entries); RejectFlow 3/3 (second recruiter job -> admin moderate action:reject with note -> job appears in /admin/jobs?status=rejected, hidden from candidate /jobs, visible to recruiter /recruiter/jobs with status=rejected); AdminUsersEnriched 2/2 (/admin/users?role=candidate returns profile_completion, has_resume, applications_count; ?role=recruiter returns company_name, jobs_posted, jobs_published, applications_received). FRONTEND desktop 1280x800: admin login lands /overview, all 12 sidebar testIDs present (sidebar-overview/approvals/published/rejected/review/users/candidates/recruiters/applications/analytics/reports/settings) and each click navigates and renders non-empty content (body text length 1598-9423, URL updates per route) — no blank screens. FRONTEND mobile 390x844: admin bottom bar shows 5 tabs (tab-overview/approvals/users/applications/settings) all present and navigate correctly. Recruiter mobile create-job via /job-form: submit button posts job -> toast 'Job submitted for admin approval.' appears (data-testid=toast-message) -> auto-navigates to /postings -> 'Pending Approval' badge + 'Awaiting admin review before going live.' text both visible on the new card. Code review confirmed applicant detail buttons (applicant-interview-stage-button, applicant-hired-button, applicant-view-resume-button in /app/frontend/app/applicant/[id].tsx:92-96), reject sheet (reject-reason-input, reject-job-confirm in AdminJobs.tsx:81-82), apply messages (apply/[id].tsx:49,55: 'Application submitted successfully.' / 'Already applied.'), api.ts 401/403 messages (api.ts:132,134 'Your session has expired. Please login again.' / 'You don't have permission to access this.'), and job-form.tsx:69 toast text present. Deprecated 'shadow*' style props warning still logged in web preview (carryover).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {"component": "job-form submit button label", "issue": "Submit button title reads 'Publish job' for recruiter even though recruiter jobs now always go to pending_approval; label is misleading (user clicks 'Publish' but actually submits for approval). Toast and routing are correct, only button copy is stale.", "testID": "jobform-submit", "priority": "LOW"}
+    ],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "React Native Web styles", "issue": "Carryover: '\"shadow*\" style props are deprecated. Use \"boxShadow\".' warning still printed on login/admin screens. Reference: /app/frontend/src/ui.tsx and screen StyleSheet blocks."}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_approval_flow.py",
+    "/app/test_reports/pytest/iteration_4_approval.xml"
+  ],
+  "action_items": [
+    "LOW: rename recruiter job-form submit button title from 'Publish job' to 'Submit for approval' (job-form.tsx line 127) — current label is misleading now that all recruiter jobs go to pending_approval.",
+    "Carryover: migrate RN shadow* style props to unified boxShadow in /app/frontend/src/ui.tsx.",
+    "Carryover (iter 3): redeploy production backend (matchjob-india.emergent.host) — still stale per iter 3 unless redeployed since. Not re-verified this round.",
+    "Operational note (for future test agents): the recruiter test company has job_post_limit=2; close any lingering QA jobs via POST /recruiter/jobs/{id}/status {status:'closed'} before posting new ones, or set higher plan quota for the TEST recruiter."
+  ],
+  "critical_code_review_comments": [
+    "routes_admin.py moderate() correctly branches approve/reject and persists moderation_note; notify() fires only when posted_by set — admin-created jobs (posted_by=None) will not notify a recruiter, which is correct behavior.",
+    "routes_main.py apply flow stores recruiter_id (from job.posted_by), candidate_email and read=false — enriched fields verified via POST /applications response and GET /recruiter/dashboard recent_applications.",
+    "routes_recruiter.py create_job() counts active = published|pending_approval|paused; this is the correct denominator but it caused tests to 402 until QA jobs were force-closed. Consider raising job_post_limit for the TEST recruiter in seed.py to avoid flakes.",
+    "api.ts:132 session-expired message is correctly scoped to non-login paths (if (!path.startsWith('/auth/login'))); api.ts:134 permission message only fires when detail is non-string. Both match the spec.",
+    "/app/frontend/app/(admin)/_layout.tsx uses width>=900 threshold for sidebar vs bottom bar; verified via viewport 1280 (sidebar) and 390 (5-tab bottom bar) — matches spec."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_approval_flow.py (new, 20 tests)"
+  ],
+  "success_rate": {"backend": "100% (20/20 pytest, preview)", "frontend": "100% on tested flows (admin desktop sidebar 12/12, admin mobile bottom bar 5/5, recruiter mobile create-job -> toast -> /postings 'Pending Approval'); applicant-detail/reject-sheet UI not click-tested due to recruiter test-company quota and session re-login flakiness in automation — verified by code review"},
+  "seed_data_creation": "Created and closed 2 QA pending jobs on recruiter@test.jobmatchai.in (TestApprovalFlow + TestRejectFlow fixtures). Created 1 shortlisted->hired application for candidate@test.jobmatchai.in on the approved QA job. Closed stale seeded jobs (job_f149d02b5bf8, job_959f32ecf42f, job_84b9182c246b, job_0a596d06424e, job_590194691572, job_2c0838b99569) to make quota room. UI test created 'QA UI Pending Flow' job in pending_approval state (leave or admin-approve).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Pytest suite for this iteration: /app/backend/tests/test_approval_flow.py (run with `-o addopts=` to disable xdist LoadScopeScheduling which breaks class-scoped fixtures shared between TestApprovalFlow and TestRejectFlow). The TEST recruiter company (cmp_07d3a0070f4a, [TEST] Demo Hiring Co) has job_post_limit=2 — before running approval tests, close any existing published/pending_approval/paused jobs for that company (POST /recruiter/jobs/{id}/status {status:'closed'}). All seeded jobs under that company have already been closed in this run. Login rate limiter is still 10/300s per IP — reuse session tokens via conftest.py fixtures. GET /jobs enforces limit<=50. Admin dashboard key is 'metrics' not 'counters'. Candidate seeded resume is intact. CRITICAL testID map for next UI run: sidebar-* and tab-* (admin nav), jobform-title/description/required-skills/min-exp/max-exp/salary-min/salary-max/location/submit, toast-message, applicant-interview-stage-button, applicant-hired-button, applicant-view-resume-button, reject-reason-input, reject-job-confirm.",
+  "rca_of_issue": "No new bugs — this iteration is a feature additions review. All backend contract changes (pending_approval default, enriched admin APIs, stage filter, application enrichment, metrics additions, reject moderation note) verified end-to-end via automated pytest. Only one minor UX concern: recruiter 'Publish job' button label is semantically incorrect after the pending_approval change (actual behavior is correct)."
+}

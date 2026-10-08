@@ -127,7 +127,11 @@ export async function api<T = any>(
   }
   if (debug) console.log(`AUTH_DEBUG <- ${method} /api${path} ${res.status} in ${Date.now() - started}ms${res.ok ? "" : ` detail=${typeof data?.detail === "string" ? data.detail : res.status}`}`);
   if (!res.ok) {
-    if (res.status === 401 && token && onUnauthorized) onUnauthorized();
+    if (res.status === 401 && token && onUnauthorized) {
+      onUnauthorized();
+      if (!path.startsWith("/auth/login")) throw new ApiError(401, "Your session has expired. Please login again.");
+    }
+    if (res.status === 403 && typeof data?.detail !== "string") throw new ApiError(403, "You don't have permission to access this.");
     throw new ApiError(res.status, errMessage(data, res.status));
   }
   return data as T;

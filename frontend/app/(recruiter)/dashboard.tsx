@@ -81,7 +81,7 @@ export default function Dashboard() {
           )}
           <SectionTitle title="Recent applications" action="Pipeline" onAction={() => router.push("/candidates")} testID="dashboard-see-pipeline" />
           {d.recent_applications.length === 0 ? (
-            <EmptyView icon="people-outline" title="No candidates yet" message="Post a job to start receiving candidates." action="Post job" onAction={() => router.push("/job-form")} />
+            <EmptyView icon="people-outline" title="No applications yet" message="Applications will appear here when candidates apply to your jobs." action="Post job" onAction={() => router.push("/job-form")} />
           ) : (
             d.recent_applications.map((a: any) => (
               <Card key={a.id} onPress={() => router.push(`/applicant/${a.id}`)} style={{ flexDirection: "row", alignItems: "center", gap: 12 }} testID={`dashboard-app-${a.id}`}>

@@ -55,8 +55,8 @@ export default function Applicant() {
     run("iv", () => api(`/recruiter/applications/${id}/interviews`, { body: { scheduled_at: d.toISOString(), duration_minutes: Number(iv.duration || 30), mode: iv.mode, location_or_link: iv.link || null, notes: iv.notes || null } }), "Interview scheduled");
   };
   const send = () => msg.trim() && run("msg", () => api(`/recruiter/applications/${id}/message`, { body: { body: msg } }).then(() => setMsg("")), "Message sent");
-  const openResume = () => {
-    const url = fileUrl(a.resume_file_id, true)!;
+  const openResume = (download: boolean) => {
+    const url = fileUrl(a.resume_file_id, download)!;
     if (Platform.OS === "web") window.open(url, "_blank");
     else Linking.openURL(url);
   };
@@ -89,9 +89,12 @@ export default function Applicant() {
 
         <View style={s.actions}>
           <Button title="Shortlist" small icon="star-outline" onPress={() => move("shortlisted")} loading={busy === "shortlisted"} disabled={a.stage === "shortlisted"} testID="applicant-shortlist-button" />
-          <Button title="Move stage" small variant="secondary" icon="git-commit-outline" onPress={() => setSheet("stage")} testID="applicant-move-stage-button" />
-          <Button title="Interview" small variant="secondary" icon="calendar-outline" onPress={() => setSheet("interview")} testID="applicant-schedule-button" />
-          <Button title="Resume" small variant="outline" icon="download-outline" onPress={openResume} testID="applicant-resume-button" />
+          <Button title="Move to Interview" small variant="secondary" icon="people-outline" onPress={() => move("interview")} loading={busy === "interview"} disabled={a.stage === "interview"} testID="applicant-interview-stage-button" />
+          <Button title="Mark Hired" small variant="secondary" icon="trophy-outline" onPress={() => move("hired")} loading={busy === "hired"} disabled={a.stage === "hired"} testID="applicant-hired-button" />
+          <Button title="Move stage" small variant="outline" icon="git-commit-outline" onPress={() => setSheet("stage")} testID="applicant-move-stage-button" />
+          <Button title="Schedule" small variant="outline" icon="calendar-outline" onPress={() => setSheet("interview")} testID="applicant-schedule-button" />
+          <Button title="View Resume" small variant="outline" icon="eye-outline" onPress={() => openResume(false)} testID="applicant-view-resume-button" />
+          <Button title="Download" small variant="outline" icon="download-outline" onPress={() => openResume(true)} testID="applicant-resume-button" />
           {c.allow_contact && <Button title="Message" small variant="outline" icon="chatbubble-outline" onPress={() => setSheet("message")} testID="applicant-message-button" />}
           <Button title="Reject" small variant="danger" icon="close" onPress={() => move("rejected")} loading={busy === "rejected"} disabled={a.stage === "rejected"} testID="applicant-reject-button" />
         </View>

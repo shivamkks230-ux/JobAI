@@ -130,8 +130,7 @@ def _job_fields(body: JobIn) -> dict:
 async def _decide_status(company: dict, flags: list, draft: bool) -> str:
     if draft:
         return "draft"
-    if company["verification_status"] == "verified" and not flags:
-        return "published"
+    # Every recruiter job is reviewed by an admin before going live.
     return "pending_approval"
 
 
@@ -265,7 +264,7 @@ async def _my_app(app_id: str, user: dict) -> dict:
 async def applicant_detail(app_id: str, user=Depends(recruiter_only)):
     a = await _my_app(app_id, user)
     if not a.get("viewed_at"):
-        await db.applications.update_one({"id": app_id}, {"$set": {"viewed_at": iso()}})
+        await db.applications.update_one({"id": app_id}, {"$set": {"viewed_at": iso(), "read": True}})
         await notify(a["candidate_id"], "application_viewed", "Application viewed",
                      f"{a['company_name']} viewed your application for {a['job_title']}.", {"application_id": app_id})
     p = await get_profile(a["candidate_id"]) or {}

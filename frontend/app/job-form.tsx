@@ -66,7 +66,10 @@ export default function JobForm() {
         toast(r.status === "pending_approval" ? "Saved — sent for admin review" : "Job updated");
       } else {
         const r = await api("/recruiter/jobs", { body });
-        toast(r.status === "published" ? "Job published" : r.status === "draft" ? "Draft saved" : "Submitted for admin approval");
+        toast(r.status === "draft" ? "Draft saved" : "Job submitted for admin approval.");
+        qc.invalidateQueries();
+        router.replace("/postings");
+        return;
       }
       qc.invalidateQueries();
       router.back();
@@ -121,7 +124,7 @@ export default function JobForm() {
         <Input label="External application URL (optional, https://)" value={f.external_url} onChangeText={set("external_url")} autoCapitalize="none" testID="jobform-external-url" />
         <Text style={s.note}>Never ask candidates for payment. Listings with payment requests or personal contact details are held for review.</Text>
         {err ? <Text style={s.err} testID="jobform-error">{err}</Text> : null}
-        <Button title={id ? "Save changes" : isAdmin ? "Publish job" : "Publish job"} onPress={() => submit(false)} loading={busy === "publish"} testID="jobform-submit" />
+        <Button title={id ? "Save changes" : isAdmin ? "Publish job" : "Submit for approval"} onPress={() => submit(false)} loading={busy === "publish"} testID="jobform-submit" />
         {!isAdmin && !id && <Button title="Save as draft" variant="outline" onPress={() => submit(true)} loading={busy === "draft"} testID="jobform-save-draft" />}
       </KeyboardAwareScrollView>
     </View>

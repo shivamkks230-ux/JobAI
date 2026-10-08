@@ -46,13 +46,13 @@ export default function Apply() {
     setBusy(true);
     try {
       const a = await api("/applications", { body: { job_id: j.id, cover_letter: cover || null, consent, share_email: shareEmail, share_phone: sharePhone } });
-      toast("Application submitted");
+      toast("Application submitted successfully.");
       qc.invalidateQueries({ queryKey: ["applications"] });
       qc.invalidateQueries({ queryKey: ["job", id] });
       qc.invalidateQueries({ queryKey: ["home"] });
       router.replace(`/application/${a.id}`);
     } catch (e: any) {
-      setErr(e.message);
+      setErr(e.status === 409 ? "Already applied." : e.message);
     } finally {
       setBusy(false);
     }

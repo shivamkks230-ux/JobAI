@@ -677,7 +677,10 @@ async def apply(body: ApplyIn, request: Request, user=Depends(candidate_only)):
     if await db.applications.find_one({"candidate_id": user["id"], "job_id": job["id"]}, {"_id": 1}):
         raise HTTPException(409, "You have already applied to this job")
     match = compute_match(profile, job)
+    ra = await db.resume_analysis.find_one({"resume_id": resume["id"], "status": "completed"}, {"_id": 0, "score": 1})
     app = {"id": new_id("app"), "candidate_id": user["id"], "job_id": job["id"], "company_id": job["company_id"],
+           "recruiter_id": job.get("posted_by"), "candidate_email": user["email"],
+           "ai_resume_score": (ra or {}).get("score"), "read": False,
            "resume_id": resume["id"], "resume_file_id": resume["file_id"], "cover_letter": clean(body.cover_letter, 3000),
            "stage": "applied", "candidate_status": "active", "recruiter_notes": [],
            "shared": {"email": body.share_email, "phone": body.share_phone},
