@@ -77,3 +77,11 @@ MONGO_URL, DB_NAME, EMERGENT_LLM_KEY, SEED_TEST_DATA (set false/remove in produc
 - Applicant actions: Move to Interview, Mark Hired, View/Download resume.
 - Errors: session-expired (401) and permission (403) messages.
 - Test data seeds once per DB (system_flags marker), so purge is permanent.
+
+## 2026-09 Brand refresh: app icon + splash screen
+- Original logo mark generated (briefcase + magnifier-with-person candidate-search + AI sparkle) on indigo->purple->violet gradient via /app/backend/tools/generate_branding.py (PIL, 4x supersampled, reproducible).
+- Assets: icon.png 1024, playstore-icon.png 512, favicon.png 512, adaptive-icon.png (transparent foreground, white mark in safe zone), logo-mark.png (gradient tile for in-app use), splash-image.png 1440x2880 (white, centered tile + "JobMatch AI" + tagline + gradient waves).
+- app.json: adaptiveIcon backgroundColor -> #5425D8; splash plugin resizeMode -> cover (no crop of centered content, waves fill to edges on all aspect ratios), background #FFFFFF.
+- _layout.tsx: SplashScreen.setOptions({duration:300, fade:true}) for fade transition (auto-hide, no startup delay); auth Gate loading screen shows logo-mark.
+- theme.ts brand family aligned to brand palette: brand/brandPrimary #5425D8, secondary #EDE9FE/#5B21B6, tertiary #F5F3FF, hero gradient #5425D8->#7C3AED.
+- NOTE: native launcher icon + splash only visible in a real build (Publish / Android Studio), not in Expo Go or web preview.

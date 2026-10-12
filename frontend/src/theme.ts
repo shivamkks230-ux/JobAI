@@ -54,14 +54,14 @@ const light = {
   // Brand: the identity color and the fills built from it.
   // Neutral by default; replace with the design guidelines values.
   // ---------------------------------------------------------------------------
-  brand: "#4F46E5", // base hue, anchor only; Primary, Secondary, Tertiary are weights of it
+  brand: "#5425D8", // base hue, anchor only; Primary, Secondary, Tertiary are weights of it
   onBrand: "#FFFFFF", // text and icons placed directly on brand
-  brandPrimary: "#4338CA", // primary CTA, active tab indicator, selected states
+  brandPrimary: "#5425D8", // primary CTA, active tab indicator, selected states
   onBrandPrimary: "#FFFFFF", // text and icons on brandPrimary
-  brandSecondary: "#E0E7FF", // secondary CTA, less prominent accents
-  onBrandSecondary: "#3730A3", // text and icons on brandSecondary
-  brandTertiary: "#EEF2FF", // chips, tags, badges, subtle brand moments
-  onBrandTertiary: "#4338CA", // text and icons on brandTertiary
+  brandSecondary: "#EDE9FE", // secondary CTA, less prominent accents
+  onBrandSecondary: "#5B21B6", // text and icons on brandSecondary
+  brandTertiary: "#F5F3FF", // chips, tags, badges, subtle brand moments
+  onBrandTertiary: "#5425D8", // text and icons on brandTertiary
 
   // ---------------------------------------------------------------------------
   // Status: semantic only, never decorative. Fill for badges, banners and
@@ -91,8 +91,8 @@ const light = {
   warningText: "#B45309",
   errorSoft: "#FEE2E2",
   scrim: "rgba(15,23,42,0.45)",
-  heroStart: "#4338CA",
-  heroEnd: "#6366F1",
+  heroStart: "#5425D8",
+  heroEnd: "#7C3AED",
 };
 
 export type ThemeColors = typeof light;
