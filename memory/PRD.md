@@ -86,3 +86,9 @@ MONGO_URL, DB_NAME, EMERGENT_LLM_KEY, SEED_TEST_DATA (set false/remove in produc
 - theme.ts brand family aligned to brand palette: brand/brandPrimary #5425D8, secondary #EDE9FE/#5B21B6, tertiary #F5F3FF, hero gradient #5425D8->#7C3AED.
 - NOTE: native launcher icon + splash only visible in a real build (Publish / Android Studio), not in Expo Go or web preview.
 - Login hero: placeholder sparkles icon replaced with logo-mark.png in a white rounded tile (shadowed); tagline aligned to brand line "Find the Right Job. Faster."
+
+## 2026-10 Windows local build fix: yarn install preinstall hook
+- User pulled repo on Windows (D:\JobAI\frontend) for Android Studio builds; `yarn install` failed: preinstall hook `./scripts/cmd-guard.js --preinstall` (Unix executable path) cannot run under Windows cmd.exe -> exit code 1.
+- Fix: package.json preinstall changed to `node ./scripts/cmd-guard.js --preinstall` (cross-platform, guard behavior identical).
+- iteration_5 verified: preinstall EXIT=0, yarn install --frozen-lockfile passes, guard still blocks banned packages (expo-av), login screen + /api/health regression pass.
+- User must `git pull` on Windows, then re-run `yarn install`.
