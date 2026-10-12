@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Text, View } from "react-native";
+import { Image, Text, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -47,6 +47,12 @@ export default function Register() {
     <View style={s.root}>
       <Header title="Create account" subtitle="Free for job seekers" back />
       <KeyboardAwareScrollView bottomOffset={24} keyboardShouldPersistTaps="handled" contentContainerStyle={[s.body, { paddingBottom: insets.bottom + 24 }]}>
+        <View style={s.brandHero}>
+          <View style={s.logoMark}>
+            <Image source={require("../../assets/images/logo-mark.png")} style={s.logoImage} resizeMode="contain" />
+          </View>
+          <Text style={s.brandText}>JobMatch AI</Text>
+        </View>
         <Segmented
           testIDPrefix="register-role"
           value={role}
@@ -87,6 +93,10 @@ export default function Register() {
 const useStyles = makeStyles((c) => ({
   root: { flex: 1, backgroundColor: c.surface },
   body: { padding: 20, gap: 16 },
+  brandHero: { alignItems: "center", gap: 10, paddingVertical: 4 },
+  logoMark: { width: 60, height: 60, borderRadius: 18, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center", borderWidth: 1, borderColor: c.border, shadowColor: "#17153A", shadowOpacity: 0.12, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 4 },
+  logoImage: { width: 44, height: 44 },
+  brandText: { fontSize: 20, fontWeight: "800", color: c.brandPrimary, letterSpacing: -0.4 },
   section: { fontSize: 17, fontWeight: "800", color: c.onSurface, marginTop: 8 },
   note: { fontSize: 13, color: c.muted, lineHeight: 19 },
   err: { color: c.error, fontSize: 13, fontWeight: "600" },
