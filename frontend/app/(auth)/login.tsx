@@ -1,7 +1,7 @@
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Image, Pressable, Text, View } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -65,12 +65,12 @@ export default function Login() {
       <KeyboardAwareScrollView bottomOffset={24} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
         <LinearGradient colors={[colors.heroStart, colors.heroEnd]} style={[s.hero, { paddingTop: insets.top + 40 }]}>
           <View style={s.logoMark}>
-            <Icon name="sparkles" size={26} color={colors.onBrand} />
+            <Image source={require("../../assets/images/logo-mark.png")} style={s.logoImage} resizeMode="contain" />
           </View>
           <Text style={s.brand} testID="login-brand">
             JobMatch AI
           </Text>
-          <Text style={s.tagline}>Your next job, matched smarter.</Text>
+          <Text style={s.tagline}>Find the Right Job. Faster.</Text>
         </LinearGradient>
         <View style={s.form}>
           <Text style={s.h1}>Welcome back</Text>
@@ -109,7 +109,8 @@ export default function Login() {
 const useStyles = makeStyles((c) => ({
   root: { flex: 1, backgroundColor: c.surface },
   hero: { paddingHorizontal: 24, paddingBottom: 40, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
-  logoMark: { width: 52, height: 52, borderRadius: 16, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center", marginBottom: 16 },
+  logoMark: { width: 64, height: 64, borderRadius: 20, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center", marginBottom: 16, shadowColor: "#17153A", shadowOpacity: 0.25, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 8 },
+  logoImage: { width: 48, height: 48 },
   brand: { fontSize: 32, fontWeight: "800", color: c.onBrand, letterSpacing: -0.8 },
   tagline: { fontSize: 16, color: c.brandSecondary, marginTop: 6 },
   form: { padding: 24, gap: 16 },

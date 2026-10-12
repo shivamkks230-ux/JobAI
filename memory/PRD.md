@@ -85,3 +85,4 @@ MONGO_URL, DB_NAME, EMERGENT_LLM_KEY, SEED_TEST_DATA (set false/remove in produc
 - _layout.tsx: SplashScreen.setOptions({duration:300, fade:true}) for fade transition (auto-hide, no startup delay); auth Gate loading screen shows logo-mark.
 - theme.ts brand family aligned to brand palette: brand/brandPrimary #5425D8, secondary #EDE9FE/#5B21B6, tertiary #F5F3FF, hero gradient #5425D8->#7C3AED.
 - NOTE: native launcher icon + splash only visible in a real build (Publish / Android Studio), not in Expo Go or web preview.
+- Login hero: placeholder sparkles icon replaced with logo-mark.png in a white rounded tile (shadowed); tagline aligned to brand line "Find the Right Job. Faster."
